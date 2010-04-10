@@ -1,0 +1,208 @@
+#!/bin/bash
+#
+# Linux WAN failover script.
+#
+# Copyright 2010 Louwrentius
+#
+# Licence = GNU GPL
+#
+
+
+VERSION=1.0
+PRIMARY_TARGET=74.125.77.104
+SECONDARY_TARGET=209.85.229.104
+PRIMARY_GW=10.0.0.1
+SECONDARY_GW=192.168.0.1
+INTERVAL=10
+COUNT=3
+THRESHOLD=2
+PRIMARY_TARGET_FAILED=0
+SECONDARY_TARGET_FAILED=0
+COOLDOWNDELAY=30
+MAIL_TARGET=""
+ACTIVE_CONNECTION="$1"
+
+#
+# If some command must be run after a failover or restore, please specify
+# the commands within these variables.
+#
+PRIMARY_CMD=""
+SECONDARY_CMD=""
+
+# --- do not change anything below ---
+
+usage () {
+
+    echo
+    echo "Network connection monitoring script."
+    echo "Usage $0 [ PRIMARY | SECONDARY ] "
+    echo
+    echo "Edit this script to your preference."
+    echo "The single argument specifies the current active connection."
+    echo
+}
+
+if [ -z "$ACTIVE_CONNECTION" ]
+then
+    ACTIVE_CONNECTION=PRIMARY
+fi
+
+if [ ! "$ACTIVE_CONNECTION" == "PRIMARY" ] && [ ! "$ACTIVE_CONNECTION" == "SECONDARY" ] 
+then
+    usage
+    exit 1
+fi
+
+#
+# This route allows testing if the failed primary link
+# Is available again, when in failover mode.
+#
+route add -host "$PRIMARY_TARGET" gw "$PRIMARY_GW" >> /dev/null 2>&1
+route add -host "$SECONDARY_TARGET" gw "$PRIMARY_GW" >> /dev/null 2>&1
+
+test_target () {
+
+    TARGET="$1"
+    HOST=""
+
+    if [ "$TARGET" == "PRIMARY" ]
+    then
+        HOST="$PRIMARY_TARGET"
+    elif [ "$TARGET" == "SECONDARY" ]
+    then
+        HOST="$SECONDARY_TARGET"
+    fi
+
+    ping -c "$COUNT" "$HOST" >> /dev/null 2>&1
+    if [ ! "$?" == "0" ]
+    then
+        if [ "$DEBUG" == "1" ]
+        then
+            echo "Host $TARGET $HOST UNREACHABLE"
+        fi
+
+        if [ "$TARGET" == "PRIMARY" ]
+        then
+            ((PRIMARY_TARGET_FAILED++)) 
+        fi
+
+        if [ "$TARGET" == "SECONDARY" ]
+        then
+            ((SECONDARY_TARGET_FAILED++)) 
+        fi
+    else
+        if [ "$TARGET" == "PRIMARY" ]
+        then
+            PRIMARY_TARGET_FAILED=0
+        elif [ "$TARGET" == "SECONDARY" ]
+        then
+            SECONDARY_TARGET_FAILED=0
+        fi
+
+        if [ "$DEBUG" == "1" ]
+        then
+            echo "Host $TARGET $HOST OK"
+        fi
+    fi
+}
+
+
+test_wan_status () {
+
+    test_target PRIMARY
+    test_target SECONDARY
+}
+
+log () {
+
+    SUBJECT="$1"
+    BODY="$2"
+    if [ ! -z "$MAIL_TARGET" ]
+    then
+        echo "$BODY" | mail -s "$SUBJECT" "$MAIL_TARGET" &
+    fi
+    echo "$SUBJECT" | logger
+    echo "$SUBJECT" 
+}
+
+route_del () {
+
+    route del default gw "$1"
+}
+
+route_add () {
+
+    route add default gw "$1"
+}
+
+switch_to_primary () {
+
+    route_del "$SECONDARY_GW"
+    route_add "$PRIMARY_GW"
+    ACTIVE_CONNECTION="PRIMARY"
+}
+
+switch_to_secondary () {
+
+    route_del "$PRIMARY_GW"
+    route_add "$SECONDARY_GW"
+    ACTIVE_CONNECTION="SECONDARY"
+}
+
+check_wan_status () {
+
+    if [ "$PRIMARY_TARGET_FAILED" -ge "$THRESHOLD" ] && [ "$SECONDARY_TARGET_FAILED" -ge "$THRESHOLD" ] && [ "$ACTIVE_CONNECTION" == "PRIMARY" ]
+    then
+        MSG="Primary WAN link failed. Switched to secondary link."
+        BODY=`route -n`
+        log "$MSG" "$BODY"
+        switch
+    elif [ "$ACTIVE_CONNECTION" == "SECONDARY" ] 
+    then
+        if [ "$PRIMARY_TARGET_FAILED" == "0" ] || [ "$SECONDARY_TARGET_FAILED" == "0" ]
+        then
+            MSG="Primary WAN link OK. Switched back to primary link."
+            BODY=`route -n`
+            log "$MSG" "$BODY"
+            switch
+        fi
+    else
+        if [ "$DEBUG" = "1" ]
+        then
+            echo -e "WAN Link: $ACTIVE_CONNECTION"
+        fi
+    fi
+}
+
+switch () {
+
+    if [ "$ACTIVE_CONNECTION" == "PRIMARY" ]
+    then
+        switch_to_secondary
+        if [ ! -z "$SECONDARY_CMD" ]
+        then
+            eval "$SECONDARY_CMD"
+        fi
+    elif [ "$ACTIVE_CONNECTION" == "SECONDARY" ]
+    then
+        switch_to_primary
+        if [ ! -z "$PRIMARY_CMD" ]
+        then
+            eval "$PRIMARY_CMD"
+        fi
+    fi
+    sleep "$COOLDOWNDELAY"
+}
+
+while true
+do
+    test_wan_status
+    check_wan_status
+
+    sleep "$INTERVAL"
+done
+    
+
+
+
+
