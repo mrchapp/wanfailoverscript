@@ -29,9 +29,13 @@ cp $INITSCRIPT $INITSCRIPT_TARGET
 
 if [ -e $CONFIG_TARGET/$CONFIG ]
 then
-    echo "Existing configuration found. Creating $CONFIG_TARGET/$CONFIG.new"
+    echo
+    echo "-------------------------------------------------------------------"
+    echo "Existing configuration found. Creating $CONFIG_TARGET/$CONFIG.new."
     echo "Update your existing configuration file with the new one or WFS may"
-    echo "not operate properly due to changes."
+    echo "not operate properly due to changes. Press enter to continue."
+    echo "-------------------------------------------------------------------"
+    read
     cp $CONFIG $CONFIG_TARGET/$CONFIG.new
 else
     cp $CONFIG $CONFIG_TARGET/$CONFIG
