@@ -27,6 +27,7 @@ else
     PIDFILE=/var/run/wfs.pid
 fi
 
+
 PRIMARY_TARGET_FAILED=0
 SECONDARY_TARGET_FAILED=0
 ACTIVE_CONNECTION=""
@@ -71,6 +72,14 @@ log2syslog () {
 
     echo "$1" | logger
 }
+
+
+if [ -e "$PIDFILE" ]
+then
+    log2dsply "PID file $PIDFILE exists. Aborting."
+    log2syslog "PID file $PIDFILE exists. Aborting"
+    exit 1
+fi
 
 route_del () {
 
