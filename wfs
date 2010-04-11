@@ -24,6 +24,7 @@ else
     COOLDOWNDELAY=20
     MAIL_TARGET=""
     DAEMON=1
+    PIDFILE=/var/run/wfs.pid
 fi
 
 PRIMARY_TARGET_FAILED=0
@@ -232,6 +233,7 @@ then
 else
     log2syslog "*** Starting monitoring of WAN link. ***"
     start_wfs &
+    echo "$!" > "$PIDFILE"
 fi
     
 

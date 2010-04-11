@@ -1,0 +1,14 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          wfs
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5 S
+# Default-Stop:      0 1 6
+# Short-Description: WFS WAN Failover Script
+# Description:       WFS allows active connection monitoring
+#                    and automatic failover in dual WAN setups.
+### END INIT INFO
+
+
+
