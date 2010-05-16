@@ -14,13 +14,14 @@ if [ -e "$CONFIG" ]
 then
     . $CONFIG
 else
-    TARGET_FILE="targetsfile.txt"
+    TARGET_FILE="targets.txt"
     TARGETS=`cat "$TARGET_FILE"`
     PRIMARY_GW=10.0.0.1
     SECONDARY_GW=10.0.0.200
-    INTERVAL=15
-    COUNT=3
-    THRESHOLD=2
+    INTERVAL=25
+    COUNT=2
+    DISTANCE=15
+    THRESHOLD=3
     COOLDOWNDELAY=20
     MAIL_TARGET=""
     DAEMON=1
@@ -110,6 +111,7 @@ test_single_target () {
         fi
 
         ((TARGET_FAILED++)) 
+        DISTANCE=5
 
     else
         if [ "$TARGET_FAILED" -gt "0" ] 
@@ -126,12 +128,13 @@ test_single_target () {
 }
 
 
-
 test_wan_status () {
 
     for x in $TARGETS
     do
         test_single_target $x
+        check_wan_status
+        sleep "$DISTANCE"
     done
 }
 
@@ -210,8 +213,6 @@ start_wfs () {
     while true
     do
         test_wan_status
-        check_wan_status
-
         sleep "$INTERVAL"
     done
 }
