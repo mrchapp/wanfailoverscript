@@ -117,6 +117,7 @@ test_single_target () {
         if [ "$TARGET_FAILED" -gt "0" ] 
         then
             ((TARGET_FAILED--))
+        fi
 
         if [ "$DEBUG" == "1" ]
         then
@@ -124,7 +125,6 @@ test_single_target () {
             log2syslog "Host $TARGET OK"
         fi
     fi
-
 }
 
 
