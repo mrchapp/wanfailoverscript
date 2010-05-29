@@ -264,6 +264,7 @@ switch () {
             eval "$PRIMARY_CMD"
         fi
     fi
+    log DEBUG "Cooldown, sleeping for $COOLDOWNDELAY seconds."
     sleep "$COOLDOWNDELAY"
 }
 
