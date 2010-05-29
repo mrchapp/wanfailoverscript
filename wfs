@@ -7,7 +7,7 @@
 # Licence = GNU GPL
 #
 
-VERSION=1.20
+VERSION=2.0
 
 CONFIG=/etc/wfs
 CONFIG_FILE="$CONFIG/wfs.conf"
