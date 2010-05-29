@@ -32,6 +32,7 @@ fi
 TARGETS_FAILED=0
 ACTIVE_CONNECTION=""
 TEST_INTERVAL="$INTERVAL"
+NO_OF_TARGETS=ERROR
 
 #
 # If some command must be run after a failover or restore, please specify
@@ -109,7 +110,7 @@ init_wfs () {
     else
         TARGETS=`cat "$TARGETS_FILE"`
         TMPVAR=( $TARGETS )
-        NO_OF_TARGETS=`${#TMPVAR[@]}`
+        NO_OF_TARGETS=${#TMPVAR[@]}
     fi
 
     if [ -z "$TARGETS" ]
@@ -270,8 +271,8 @@ switch () {
 
 start_wfs () {
 
-    display_header
     init_wfs
+    display_header
 
     log INFO "Starting monitoring of WAN link."
 
