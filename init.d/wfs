@@ -10,7 +10,7 @@
 #                    and automatic failover in dual WAN setups.
 ### END INIT INFO
 
-CONFIG=/etc/wfs.conf
+CONFIG=/etc/wfs/wfs.conf
 
 if [ -e "$CONFIG" ]
 then

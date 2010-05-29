@@ -2,11 +2,12 @@
 
 BINARY=wfs
 CONFIG=wfs.conf
+TARGETS=targets.txt
 INITSCRIPT=init.d/wfs
 
 BINARY_TARGET=/usr/bin
 INITSCRIPT_TARGET=/etc/init.d
-CONFIG_TARGET=/etc
+CONFIG_TARGET=/etc/wfs
 
 if [ "$1" == "remove" ]
 then
@@ -18,14 +19,20 @@ then
         chkconfig --del wfs
     fi
 
-    rm $BINARY_TARGET/$BINARY
-    rm $CONFIG_TARGET/$CONFIG
+    rm "$BINARY_TARGET/$BINARY"
+    rm "$CONFIG_TARGET/$CONFIG"
+    rm "$CONFIG_TARGET/$TARGETS"
     rm $INITSCRIPT_TARGET/`basename $INITSCRIPT`
     exit
 fi
 
-cp $BINARY $BINARY_TARGET
-cp $INITSCRIPT $INITSCRIPT_TARGET
+if [ ! -e "$CONFIG_TARGET" ]
+then
+    mkdir -p "$CONFIG_TARGET"
+fi
+
+cp "$BINARY" "$BINARY_TARGET"
+cp "$INITSCRIPT" "$INITSCRIPT_TARGET"
 
 if [ -e $CONFIG_TARGET/$CONFIG ]
 then
@@ -36,9 +43,11 @@ then
     echo "not operate properly due to changes. Press enter to continue."
     echo "-------------------------------------------------------------------"
     read
-    cp $CONFIG $CONFIG_TARGET/$CONFIG.new
+    cp "$CONFIG" "$CONFIG_TARGET/$CONFIG.new"
+    cp "$TARGETS" "$CONFIG_TARGET/$TARGETS.new"
 else
-    cp $CONFIG $CONFIG_TARGET/$CONFIG
+    cp "$CONFIG" "$CONFIG_TARGET/$CONFIG"
+    cp "$TARGETS" "$CONFIG_TARGET/$TARGETS" 
 fi
 
 if [ -e /etc/debian_version ]
@@ -48,6 +57,5 @@ elif [ -e /etc/redhat-release ]
 then
     chkconfig --levels 2345 wfs on
 fi
-
 
 
