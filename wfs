@@ -109,7 +109,7 @@ init_wfs () {
     else
         TARGETS=`cat "$TARGETS_FILE"`
         TMPVAR=( $TARGETS )
-        NO_OF_TARGETS=${#TMPVAR[@]}
+        NO_OF_TARGETS=`${#TMPVAR[@]}`
     fi
 
     if [ -z "$TARGETS" ]
