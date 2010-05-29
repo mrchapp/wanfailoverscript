@@ -43,7 +43,7 @@ SECONDARY_CMD=""
 # --- do not change anything below ---
 
 route -n | grep -w "$PRIMARY_GW" | grep -w "0.0.0.0" >> /dev/null 2>&1
-if [ "$?" == "0" ]
+if [ "$?" = "0" ]
 then
     ACTIVE_CONNECTION=PRIMARY
 else
@@ -58,22 +58,25 @@ log () {
     case "$TYPE" in
         "ERROR" )
                     echo "$DATE $MSG" 
-                    log2syslog "$TYPE $MSG"
+                    log2syslog "$TYPE" "$TYPE $MSG"
                     ;;
         "DEBUG" )
                     if [ "$DEBUG" = "1" ]
                     then
-                        echo "$DATE $MSG"
-                        log2syslog "$TYPE $MSG"
+                        if [ "$QUIET" = "0" ]
+                        then
+                            echo "$DATE" "$MSG"
+                        fi
+                        log2syslog "$TYPE" "$TYPE $MSG"
                     fi
                     
                     ;;
         "INFO" )
-                    if [ "$QUIET" == "0" ] 
+                    if [ "$QUIET" = "0" ] || [ "$DEBUG" = "1" ]
                     then
                         echo "$DATE $MSG" 
                     fi
-                    log2syslog "$TYPE $MSG"
+                    log2syslog "$TYPE" "$TYPE $MSG"
                     ;;
     esac
 }
@@ -91,7 +94,10 @@ log2mail () {
 
 log2syslog () {
 
-    echo "$1" | logger -t "WFS"
+    TYPE=`echo "$1" | awk '{print tolower($0)}'`
+    MSG="$2"
+
+    echo "$MSG" | logger -t "WFS" -p daemon."$TYPE"
 }
 
 init_wfs () {
@@ -160,7 +166,7 @@ test_single_target () {
     log DEBUG "Test interval between hosts is $TEST_INTERVAL"
 
     ping -c "$TEST_COUNT" "$TARGET" >> /dev/null 2>&1
-    if [ ! "$?" == "0" ]
+    if [ ! "$?" = "0" ]
     then
         log INFO "Host $HOST UNREACHABLE"
 
@@ -219,16 +225,16 @@ switch_to_secondary () {
 
 check_wan_status () {
 
-    if [ "$TARGETS_FAILED" -ge "$THRESHOLD" ] && [ "$ACTIVE_CONNECTION" == "PRIMARY" ]
+    if [ "$TARGETS_FAILED" -ge "$THRESHOLD" ] && [ "$ACTIVE_CONNECTION" = "PRIMARY" ]
     then
         MSG="Primary WAN link failed. Switched to secondary link."
         BODY=`route -n`
         log2mail "$MSG" "$BODY"
         log INFO "$MSG"
         switch
-    elif [ "$ACTIVE_CONNECTION" == "SECONDARY" ] 
+    elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ] 
     then
-        if [ "$TARGETS_FAILED" == "0" ] 
+        if [ "$TARGETS_FAILED" = "0" ] 
         then
             MSG="Primary WAN link OK. Switched back to primary link."
             BODY=`route -n`
@@ -243,14 +249,14 @@ check_wan_status () {
 
 switch () {
 
-    if [ "$ACTIVE_CONNECTION" == "PRIMARY" ]
+    if [ "$ACTIVE_CONNECTION" = "PRIMARY" ]
     then
         switch_to_secondary
         if [ ! -z "$SECONDARY_CMD" ]
         then
             eval "$SECONDARY_CMD"
         fi
-    elif [ "$ACTIVE_CONNECTION" == "SECONDARY" ]
+    elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ]
     then
         switch_to_primary
         if [ ! -z "$PRIMARY_CMD" ]
@@ -275,7 +281,7 @@ start_wfs () {
 }
 
 
-if [ "$DAEMON" == "0" ]
+if [ "$DAEMON" = "0" ]
 then
     check_for_pid
     start_wfs
