@@ -168,7 +168,7 @@ test_single_target () {
     ping -c "$TEST_COUNT" "$TARGET" >> /dev/null 2>&1
     if [ ! "$?" = "0" ]
     then
-        log INFO "Host $HOST UNREACHABLE"
+        log INFO "Host $TARGET UNREACHABLE"
 
         if [ "$TARGETS_FAILED" -lt "$THRESHOLD" ]
         then
