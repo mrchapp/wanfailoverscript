@@ -34,6 +34,9 @@ fi
 cp "$BINARY" "$BINARY_TARGET"
 cp "$INITSCRIPT" "$INITSCRIPT_TARGET"
 
+chmod 755 "$BINARY_TARGET/$BINARY"
+chmod 755 "$INITSCRIPT_TARGET/`basename $INITSCRIPT`"
+
 if [ -e $CONFIG_TARGET/$CONFIG ]
 then
     echo

@@ -18,7 +18,7 @@ then
 else
     TARGETS_FILE="$CONFIG/targets.txt"
     PRIMARY_GW=10.0.0.1
-    SECONDARY_GW=10.0.0.200
+    SECONDARY_GW=192.168.1.1
     INTERVAL=20
     TEST_COUNT=2
     THRESHOLD=3
@@ -27,6 +27,12 @@ else
     DAEMON=1
     QUIET=0
     PIDFILE=/var/run/wfs.pid
+    #
+    # If some command must be run after a failover or restore, please specify
+    # the commands within these variables.
+    #
+    PRIMARY_CMD=""
+    SECONDARY_CMD=""
 fi
 
 TARGETS_FAILED=0
@@ -34,12 +40,6 @@ ACTIVE_CONNECTION=""
 TEST_INTERVAL="$INTERVAL"
 NO_OF_TARGETS=ERROR
 
-#
-# If some command must be run after a failover or restore, please specify
-# the commands within these variables.
-#
-PRIMARY_CMD=""
-SECONDARY_CMD=""
 
 # --- do not change anything below ---
 
@@ -115,7 +115,7 @@ init_wfs () {
 
     if [ -z "$TARGETS" ]
     then
-        echo "No targets to test availability, targets file $TARGETS_FILE empty?."
+        log ERROR "No targets to test availability, targets file $TARGETS_FILE empty?."
         exit 1
     else
         for x in $TARGETS
