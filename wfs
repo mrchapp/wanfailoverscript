@@ -7,7 +7,7 @@
 # Licence = GNU GPL
 #
 
-VERSION=2.01
+VERSION=2.02
 
 CONFIG=/etc/wfs
 CONFIG_FILE="$CONFIG/wfs.conf"
@@ -19,10 +19,12 @@ else
     TARGETS_FILE="$CONFIG/targets.txt"
     PRIMARY_GW=10.0.0.1
     SECONDARY_GW=192.168.1.1
+    MAX_LATENCY=1000
     INTERVAL=20
     TEST_COUNT=2
     THRESHOLD=3
     COOLDOWNDELAY=20
+    TTL=""
     MAIL_TARGET=""
     DAEMON=1
     QUIET=0
@@ -148,6 +150,7 @@ display_header () {
     log INFO "------------------------------"
     log INFO " Primary gateway: $PRIMARY_GW"
     log INFO " Secondary gateway: $SECONDARY_GW"
+    log INFO " Max latency in ms: $MAX_LATENCY"
     log INFO " Threshold before failover: $THRESHOLD"
     log INFO " Number of target hosts: $NO_OF_TARGETS"
     log INFO " Tests per host: $TEST_COUNT"
@@ -166,7 +169,7 @@ test_single_target () {
     TARGET="$1"
     log DEBUG "Test interval between hosts is $TEST_INTERVAL"
 
-    ping -c "$TEST_COUNT" "$TARGET" >> /dev/null 2>&1
+    ping -W "$MAX_LATENCY" -c "$TEST_COUNT" "$TARGET" >> /dev/null 2>&1
     if [ ! "$?" = "0" ]
     then
         log INFO "Host $TARGET UNREACHABLE"
