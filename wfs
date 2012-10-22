@@ -7,7 +7,7 @@
 # Licence = GNU GPL
 #
 
-VERSION=2.02
+VERSION=2.03
 
 CONFIG=/etc/wfs
 CONFIG_FILE="$CONFIG/wfs.conf"
@@ -25,6 +25,8 @@ else
     THRESHOLD=3
     COOLDOWNDELAY=20
     TTL=""
+    COOLDOWNDELAY01=3600
+    COOLDOWNDELAY02=600
     MAIL_TARGET=""
     DAEMON=1
     QUIET=0
@@ -60,7 +62,6 @@ log () {
     DATE=`date +%b\ %d\ %H:%M:%S`
     case "$TYPE" in
         "ERROR" )
-                    echo "$DATE $MSG" 
                     log2syslog "$TYPE" "$TYPE $MSG"
                     ;;
         "DEBUG" )
@@ -75,7 +76,7 @@ log () {
                     
                     ;;
         "INFO" )
-                    if [ "$QUIET" = "0" ] || [ "$DEBUG" = "1" ]
+                    if [ "$QUIET" = "0" ] && [ "$DEBUG" = "1" ]
                     then
                         echo "$DATE $MSG" 
                     fi
@@ -178,7 +179,7 @@ test_single_target () {
         then
             ((TARGETS_FAILED++)) 
         fi
-        TEST_INTERVAL=5
+        TEST_INTERVAL=1
     else
         if [ "$TARGETS_FAILED" -gt "0" ] 
         then
@@ -231,20 +232,12 @@ check_wan_status () {
 
     if [ "$TARGETS_FAILED" -ge "$THRESHOLD" ] && [ "$ACTIVE_CONNECTION" = "PRIMARY" ]
     then
-        MSG="Primary WAN link failed. Switched to secondary link."
-        BODY=`route -n`
-        log2mail "$MSG" "$BODY"
-        log INFO "$MSG"
-        switch
+	switch
     elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ] 
     then
         if [ "$TARGETS_FAILED" = "0" ] 
         then
-            MSG="Primary WAN link OK. Switched back to primary link."
-            BODY=`route -n`
-            log2mail "$MSG" "$BODY"
-            log INFO "$MSG"
-            switch
+	    switch
         fi
     else
         log INFO "WAN Link: $ACTIVE_CONNECTION"
@@ -260,6 +253,14 @@ switch () {
         then
             eval "$SECONDARY_CMD"
         fi
+    sleep "5"
+    MSG="Primary WAN link failed. Switched to secondary link."
+    BODY=`route -n`
+    log2mail "$MSG" "$BODY"
+    log INFO "$MSG"
+    log DEBUG "Failover Cooldown started, sleeping for $COOLDOWNDELAY01 seconds."
+    sleep "$COOLDOWNDELAY01"
+
     elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ]
     then
         switch_to_primary
@@ -267,9 +268,14 @@ switch () {
         then
             eval "$PRIMARY_CMD"
         fi
+    sleep "10"
+    MSG="Primary WAN link OK. Switched back to primary link."
+    BODY=`route -n`
+    log2mail "$MSG" "$BODY"
+    log INFO "$MSG"
+    log DEBUG "Failback Cooldown started, sleeping for $COOLDOWNDELAY02 seconds."
+    sleep "$COOLDOWNDELAY02"
     fi
-    log DEBUG "Cooldown, sleeping for $COOLDOWNDELAY seconds."
-    sleep "$COOLDOWNDELAY"
 }
 
 start_wfs () {
