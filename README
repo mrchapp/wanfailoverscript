@@ -164,7 +164,7 @@ These two variables can be used to execute a custom command after a failover or 
 performed. When switching to the secondary interface, the secondary_cmd command is executed.
 When switching back to the primary interface, primary_cmd is executed.
 
-MAX_LATENCY=1000
+MAX_LATENCY=2
 
 The maximum allowed latency on an ICMP ping request before the request is considered to have
 failed.  This allows us to failover in the even of a severely degraded connection which is
