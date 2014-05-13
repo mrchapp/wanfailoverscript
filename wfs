@@ -92,7 +92,8 @@ log2mail () {
     DATE=`date +%b\ %d\ %H:%M:%S`
     if [ ! -z "$MAIL_TARGET" ]
     then
-        echo "$DATE - $BODY" | mail -s "$SUBJECT" "$MAIL_TARGET" &
+        [ "${MAIL_FROM}" != "" ] && FROM_CLAUSE="-aFrom:\"WFS ${MAIL_FROM}\"" || FROM_CLAUSE=""
+        echo "$DATE - $BODY" | mail -s "$SUBJECT" "$MAIL_TARGET" ${FROM_CLAUSE} &
     fi
 }
 
