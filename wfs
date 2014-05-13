@@ -40,6 +40,7 @@ else
 fi
 
 TARGETS_FAILED=0
+TARGETS_SEC_FAILED=0
 ACTIVE_CONNECTION=""
 TEST_INTERVAL="$INTERVAL"
 NO_OF_TARGETS=ERROR
@@ -128,6 +129,22 @@ init_wfs () {
             route add -host "$x" gw "$PRIMARY_GW" >> /dev/null 2>&1
         done
     fi
+
+    if [ ! -e "$TARGETS_SEC_FILE" ]
+    then
+        log ERROR "Secondary targets file $TARGETS_SEC_FILE does not exist."
+        exit 1
+    else
+        TARGETS_SEC=`cat "$TARGETS_SEC_FILE"`
+        TMPVAR=( $TARGETS_SEC )
+        NO_OF_TARGETS=${#TMPVAR[@]}
+    fi
+
+    if [ -z "$TARGETS_SEC" ]
+    then
+        log ERROR "No secondary targets to test availability, targets file $TARGETS_SEC_FILE empty?"
+        exit 1
+    fi
 }
 
 
@@ -196,6 +213,33 @@ test_single_target () {
     fi
 }
 
+test_single_target_at_secondary () {
+    TARGET="$1"
+
+    ping -W "$MAX_LATENCY" -c "$TEST_COUNT" $1 >> /dev/null 2>&1
+    if [ ! "$?" = "0" ]
+    then
+        log INFO "Host $TARGET UNREACHABLE"
+
+        if [ "$TARGETS_SEC_FAILED" -lt "$THRESHOLD" ]
+        then
+            ((TARGETS_SEC_FAILED++))
+        fi
+        TEST_INTERVAL=1
+    else
+        if [ "$TARGETS_SEC_FAILED" -gt "0" ]
+        then
+            ((TARGETS_SEC_FAILED--))
+        fi
+
+        log DEBUG "Host $TARGET OK"
+        if [ "$ACTIVE_CONNECTION" = "SECONDARY" ]
+        then
+            TEST_INTERVAL="$INTERVAL"
+        fi
+
+    fi
+}
 
 test_wan_status () {
 
@@ -209,6 +253,18 @@ test_wan_status () {
         check_wan_status
         sleep "$TEST_INTERVAL"
     done
+
+    if [ "$ACTIVE_CONNECTION" = "SECONDARY" ]
+    then
+        TARGETS_SEC_FAILED=0
+        test_wan_sec_status
+        if [ "$TARGETS_SEC_FAILED" -ge "$THRESHOLD" ]
+        then
+            log INFO "Secondary is down now, back again to primary and wait 60 sec"
+            switch_to_primary
+            sleep 60
+        fi
+    fi
 }
 
 route_add () {
@@ -234,50 +290,40 @@ check_wan_status () {
 
     if [ "$TARGETS_FAILED" -ge "$THRESHOLD" ] && [ "$ACTIVE_CONNECTION" = "PRIMARY" ]
     then
-	switch
+        switch_to_secondary
+        log DEBUG "Testing Secondary before switching"
+        TARGETS_SEC_FAILED=0
+        test_wan_sec_status
+        if [ "$TARGETS_SEC_FAILED" -ge "$THRESHOLD" ]
+        then
+            log INFO "Secondary is also down, back again to primary and wait 60 sec"
+            switch_to_primary
+            sleep 60
+        else
+            log DEBUG "Secondary is fine, wait for Primary to came back"
+        fi
     elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ] 
     then
         if [ "$TARGETS_FAILED" = "0" ] 
         then
-	    switch
+            switch_to_primary
         fi
     else
         log INFO "WAN Link: $ACTIVE_CONNECTION"
     fi
 }
 
-switch () {
-
-    if [ "$ACTIVE_CONNECTION" = "PRIMARY" ]
-    then
-        switch_to_secondary
-        if [ ! -z "$SECONDARY_CMD" ]
+test_wan_sec_status () {
+    for x in $TARGETS_SEC
+    do
+        test_single_target_at_secondary $x
+        if [ "$TARGETS_SEC_FAILED" -gt "0" ]
         then
-            eval "$SECONDARY_CMD"
+            log INFO "Failed targets at Secondary GW is $TARGETS_SEC_FAILED, threshold is $THRESHOLD"
         fi
-    sleep "5"
-    MSG="Primary WAN link failed. Switched to secondary link."
-    BODY=`route -n`
-    log2mail "$MSG" "$BODY"
-    log INFO "$MSG"
-    log DEBUG "Failover Cooldown started, sleeping for $COOLDOWNDELAY01 seconds."
-    sleep "$COOLDOWNDELAY01"
+        sleep "$TEST_INTERVAL"
+    done
 
-    elif [ "$ACTIVE_CONNECTION" = "SECONDARY" ]
-    then
-        switch_to_primary
-        if [ ! -z "$PRIMARY_CMD" ]
-        then
-            eval "$PRIMARY_CMD"
-        fi
-    sleep "10"
-    MSG="Primary WAN link OK. Switched back to primary link."
-    BODY=`route -n`
-    log2mail "$MSG" "$BODY"
-    log INFO "$MSG"
-    log DEBUG "Failback Cooldown started, sleeping for $COOLDOWNDELAY02 seconds."
-    sleep "$COOLDOWNDELAY02"
-    fi
 }
 
 start_wfs () {
