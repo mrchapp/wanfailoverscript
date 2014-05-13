@@ -156,6 +156,7 @@ display_header () {
     log INFO " Threshold before failover: $THRESHOLD"
     log INFO " Number of target hosts: $NO_OF_TARGETS"
     log INFO " Tests per host: $TEST_COUNT"
+    log INFO " Current Gateway: $ACTIVE_CONNECTION"
     log INFO "------------------------------"
 }
 
