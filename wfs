@@ -48,7 +48,7 @@ NO_OF_TARGETS=ERROR
 
 # --- do not change anything below ---
 
-route -n | grep -w "$PRIMARY_GW" | grep -w "0.0.0.0" >> /dev/null 2>&1
+$ROUTE -n | grep -w "$PRIMARY_GW" | grep -w "0.0.0.0" >> /dev/null 2>&1
 if [ "$?" = "0" ]
 then
     ACTIVE_CONNECTION=PRIMARY
@@ -126,7 +126,7 @@ init_wfs () {
         for x in $TARGETS
         do
             log DEBUG "Adding static route for host $x"
-            route add -host "$x" gw "$PRIMARY_GW" >> /dev/null 2>&1
+            $ROUTE add -host "$x" gw "$PRIMARY_GW" >> /dev/null 2>&1
         done
     fi
 
@@ -159,7 +159,7 @@ check_for_pid () {
 
 route_del () {
 
-    route del default gw "$1"
+    $ROUTE del default gw "$1"
 }
 
 display_header () {
@@ -269,7 +269,7 @@ test_wan_status () {
 
 route_add () {
 
-    route add default gw "$1"
+    $ROUTE add default gw "$1"
 }
 
 switch_to_primary () {
