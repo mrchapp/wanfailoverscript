@@ -65,6 +65,9 @@ log () {
         "ERROR" )
                     log2syslog "$TYPE" "$TYPE $MSG"
                     ;;
+        "WARN" )
+                    log2syslog "$TYPE" "$TYPE $MSG"
+                    ;;
         "DEBUG" )
                     if [ "$DEBUG" = "1" ]
                     then
@@ -81,7 +84,10 @@ log () {
                     then
                         echo "$DATE $MSG" 
                     fi
-                    log2syslog "$TYPE" "$TYPE $MSG"
+                    if [ "$QUIET" = "0" ]
+                    then
+                        log2syslog "$TYPE" "$TYPE $MSG"
+                    fi
                     ;;
     esac
 }
