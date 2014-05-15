@@ -283,6 +283,7 @@ switch_to_primary () {
     route_del "$SECONDARY_GW"
     route_add "$PRIMARY_GW"
     ACTIVE_CONNECTION="PRIMARY"
+    log WARN "Connection changed to ${ACTIVE_CONNECTION} link"
 }
 
 switch_to_secondary () {
@@ -290,6 +291,7 @@ switch_to_secondary () {
     route_del "$PRIMARY_GW"
     route_add "$SECONDARY_GW"
     ACTIVE_CONNECTION="SECONDARY"
+    log WARN "Connection changed to ${ACTIVE_CONNECTION} link"
 }
 
 check_wan_status () {
